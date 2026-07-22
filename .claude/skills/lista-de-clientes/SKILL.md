@@ -6,12 +6,12 @@ allowed-tools: Read, Bash
 
 ## Clientes
 Nome: nome do cliente
-- Business Manager:  Nome empresa — `BM_ID`
+- Business Manager:  Nome empresa — `912589663564936"`
 - Ad Account:        `[<nome-cliente>][cursos][3]` — `ADS_ACCOUNT_ID`
-- Facebook Page:     nome do cliente — `FACEBOOK_PAGE_ID`
+- Facebook Page:     nome do cliente — `480545155136674`
 - URLs: https://cliente-site.io, https://claude-code.cliente-site.io
-- Orçamento máximo permitido para esse cliente: 50,00 reais por dia por campanha.
-- materiais desse cliente estão em ".claude\materiais-das-empresas\<nome-cliente>"
+- Orçamento máximo permitido para esse cliente: 70,00 reais por dia por campanha.
+- materiais desse cliente estão em ".claude\materiais-das-empresas\<Viena Cacau>"
 
 Nome: cliente
 - Business Manager:  Nome empresa — `BM_ID`
