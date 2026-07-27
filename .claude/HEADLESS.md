@@ -4,7 +4,7 @@
 
 ## Por que isso importa
 
-As skills `create-traffic-<nome-cliente>-campaign` e `edicao-de-campanha-nome-do-cliente` são projetadas pra rodar autônomas (cron, queue worker, comando one-shot). Mas o modo `-p` tem 3 armadilhas:
+As skills `create-traffic-viena-cacau-campaign` e `edicao-de-campanha-viena-cacau` são projetadas pra rodar autônomas (cron, queue worker, comando one-shot). Mas o modo `-p` tem 3 armadilhas:
 
 1. **`AskUserQuestion` trava a sessão** — sem humano pra responder, o agente fica em deadlock. Mitigação: as skills foram reescritas para nunca chamar `AskUserQuestion`. Se você usar OUTRA skill em headless, verifique o markdown dela.
 2. **Auto-mode classifier bloqueia writes** — mesmo com `permissions.allow` configurado, o classifier de risco do Claude Code pode negar chamadas em conta de cliente. Mitigação: ou use `--dangerously-skip-permissions`, ou garanta que TODAS as tools usadas estão na allowlist (foi o que `settings.json` faz agora — atenção ao prefixo correto `mcp__claude_ai_Meta_Ads_MCP__*`).
@@ -12,23 +12,25 @@ As skills `create-traffic-<nome-cliente>-campaign` e `edicao-de-campanha-nome-do
 
 ## Comandos
 
-### Criar campanha (cliente <nome-cliente>, produto Claude Code Architect)
+### Criar campanha (cliente Viena Cacau, produto Claude Code Architect)
 
 ```bash
-claude --dangerously-skip-permissions -p "execute a skill /create-traffic-<nome-cliente>-campaign para gerar uma nova campanha de tráfego hoje"
+claude --dangerously-skip-permissions -p "execute a skill /create-traffic-viena-cacau-campaign para gerar uma nova campanha de tráfego hoje"
 ```
 
 `--permission-mode bypassPermissions` NÃO é suficiente para writes em conta de cliente — o classifier de risco ainda bloqueia. Use `--dangerously-skip-permissions` para headless real.
 
+> A skill se recusa a criar campanhas de verdade enquanto a landing URL real (e a razão social do payer/advertiser) não forem confirmadas em `lista-de-clientes/SKILL.md` — hoje ainda estão como placeholder/TODO.
+
 Saída esperada:
-- 3 PNGs em `.claude/materiais-das-empresas/<nome-cliente>/generated-ads/cca-YYYY-MM-DD/`
-- Campanha + adset + 3 ads PAUSED na conta Meta `225179730538661`
+- 3 PNGs em `.claude/materiais-das-empresas/Viena Cacau/generated-ads/cca-YYYY-MM-DD/`
+- Campanha + adset + 3 ads PAUSED na conta Meta `3836344939971458`
 - Manifest JSON em `tentativas-geracao-de-campanhas/YYYYMMDD-HHMM-trafego.json`
 
 ### Editar campanha
 
 ```bash
-claude --dangerously-skip-permissions -p "execute a skill /edicao-de-campanha-nome-do-cliente: aumente o orçamento da campanha 120245567804800505 em 25%"
+claude --dangerously-skip-permissions -p "execute a skill /edicao-de-campanha-viena-cacau: aumente o orçamento da campanha 120245567804800505 em 25%"
 ```
 
 Outros exemplos de pedido (em linguagem natural — a skill faz parse):
@@ -39,7 +41,7 @@ Outros exemplos de pedido (em linguagem natural — a skill faz parse):
 ### Verificar status (read-only — sem flag dangerous)
 
 ```bash
-claude -p "liste as campanhas ativas na conta 225179730538661 via Meta Ads MCP"
+claude -p "liste as campanhas ativas na conta 3836344939971458 via Meta Ads MCP"
 ```
 
 ## Quando usar cada flag
@@ -58,7 +60,7 @@ Pra rodar via cron do sistema (não via `/loop` ou Vercel Cron):
 
 ```cron
 # Toda segunda às 10h: criar campanha nova
-0 10 * * 1 cd /mnt/c/agents_team_meta_ads_v3 && /usr/bin/claude --dangerously-skip-permissions -p "execute a skill /create-traffic-<nome-cliente>-campaign" >> /var/log/cca-cron.log 2>&1
+0 10 * * 1 cd /mnt/c/Projects/agents_team_meta_ads_v3_template && /usr/bin/claude --dangerously-skip-permissions -p "execute a skill /create-traffic-viena-cacau-campaign" >> /var/log/cca-cron.log 2>&1
 ```
 
 ## Debug quando der ruim
@@ -70,7 +72,7 @@ Pra rodar via cron do sistema (não via `/loop` ou Vercel Cron):
 
 ## Pré-requisitos da máquina
 
-- `/mnt/c/agents_team_meta_ads_v3/.env.local` com `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+- `/mnt/c/Projects/agents_team_meta_ads_v3_template/.env.local` com `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`
 - Meta Ads MCP autenticado (já feito — token persistido no client)
 - Supabase MCP autenticado
 - Bucket `generated-images` no Supabase (público) — já existe

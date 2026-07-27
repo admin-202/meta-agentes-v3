@@ -1,10 +1,10 @@
 ---
-name: edicao-de-campanha-nome-do-cliente
-description: Edita campanhas/adsets/ads do cliente nome do cliente (orçamento, status, targeting, creative). Headless-safe — opera via Meta Ads MCP sem perguntas, dentro dos limites duros do cliente.
+name: edicao-de-campanha-viena-cacau
+description: Edita campanhas/adsets/ads do cliente Viena Cacau (orçamento, status, targeting, creative). Headless-safe — opera via Meta Ads MCP sem perguntas, dentro dos limites duros do cliente.
 allowed-tools: Read, Glob, Grep, Bash, Write
 ---
 
-# Skill: editar campanhas — nome do cliente
+# Skill: editar campanhas — Viena Cacau
 
 ## CONTRATO HEADLESS
 
@@ -17,11 +17,11 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 
 | Campo | Valor |
 |---|---|
-| Business Manager | `772813643612039` (Nome empresa) |
-| Ad Account | `225179730538661` |
-| Facebook Page | `867347659802006` |
-| Landing default | `https://claude-code.cliente-site.io` |
-| Materiais | `.claude/materiais-das-empresas/<nome-cliente>/` |
+| Business Manager | `912589663564936` (BM - Viena Cacau) |
+| Ad Account | `3836344939971458` (CA 01 - Viena Cacau) |
+| Facebook Page | `480545155136674` |
+| Landing default | `https://claude-code.cliente-site.io` (placeholder — não confirmada, ver `lista-de-clientes/SKILL.md`) |
+| Materiais | `.claude/materiais-das-empresas/Viena Cacau/` |
 
 ## Limites duros (validação ANTES de chamar MCP)
 
@@ -77,9 +77,9 @@ Escreva em `tentativas-geracao-de-campanhas/YYYYMMDD-HHMM-edicao.json`:
 
 ```json
 {
-  "skill": "edicao-de-campanha-nome-do-cliente",
-  "client": "<nome-cliente>",
-  "editedAt": "2026-05-19T19:30:00-03:00",
+  "skill": "edicao-de-campanha-viena-cacau",
+  "client": "viena-cacau",
+  "editedAt": "2026-07-27T19:30:00-03:00",
   "target": { "level": "campaign", "id": "120245...", "name": "..." },
   "change": { "field": "daily_budget", "from": 3000, "to": 3900 },
   "rejected": false,
@@ -96,7 +96,7 @@ Tabela markdown enxuta com `target → change → resultado`. Sem perguntas.
 
 ## NUNCA
 
-- ❌ Editar campanha de outro cliente que não `225179730538661`
+- ❌ Editar campanha de outro cliente que não `3836344939971458`
 - ❌ Aumentar orçamento mais que 30% ou acima de R$ 50/dia
 - ❌ Ativar entidade sem pedido explícito
 - ❌ Editar a mesma entidade duas vezes em 24h (sem flag `force`)
