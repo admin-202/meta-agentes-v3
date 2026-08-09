@@ -1,0 +1,40 @@
+{
+  "subdomain": "curso-exemplo",
+  "name": "CURSO",
+  "product": "Curso Exemplo",
+  "price_cents": 149700,
+  "checkout_url": "https://pay.example.com/curso-exemplo",
+  "waitlist_url": "https://wa.me/5500000000000?text=Quero%20entrar%20na%20lista%20do%20Claude%20Code%20Architect",
+  "cart_state": "open",
+  "noindex": true,
+  "site_url": "https://curso-exemplo.example.com",
+  "deadline": "2026-12-31T23:59:59-03:00",
+  "sections": [
+    "hero",
+    "urgency",
+    "problem",
+    "comparison",
+    "solution",
+    "features",
+    "curriculum",
+    "stats",
+    "proof",
+    "logos",
+    "persona",
+    "authority",
+    "offer",
+    "guarantee",
+    "faq",
+    "finalCta",
+    "footer"
+  ],
+  "tracking": {
+    "fb_pixel_id": "123456789012345",
+    "ga4_id": "G-XXXXXXXXXX",
+    "consent_key": "lp_consent_v1"
+  },
+  "seo": {
+    "title": "Curso Exemplo — domine engenharia com IA",
+    "description": "Aprenda a construir software de verdade com Claude Code: arquitetura, agentes e automação na prática."
+  }
+}
