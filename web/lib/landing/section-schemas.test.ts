@@ -1,0 +1,124 @@
+import { describe, it, expect } from "vitest";
+import { validateSection, SECTION_SCHEMAS } from "./section-schemas";
+
+// Real section `fields` captured from the live curso-exemplo-e2e draft (LP 1f4e2b68…) — the per-type
+// whitelist must accept actual generated copy, not just hand-rolled samples.
+const REAL: Record<string, unknown> = {
+  hero: {
+    badge: "Método · Agentes · Produção",
+    subhead: "Do prompt à arquitetura: o método para devs.",
+    ctaLabel: "Quero aprender agora",
+    headline: "Construa software de verdade com Claude Code.",
+  },
+  comparison: {
+    ours: "Curso Exemplo",
+    theirs: "Cursos genéricos",
+    heading: "O que diferencia método de truque de prompt.",
+    subhead: "Compare o que você aprende aqui.",
+    rows: [
+      { ours: true, label: "Método repetível", theirs: false },
+      { ours: true, label: "Exemplos que rodam", theirs: "Só demos" }, // mixed CompareCell
+    ],
+  },
+  offer: {
+    anchor: "De R$ 1.997",
+    secure: "🔒 Pagamento 100% seguro",
+    bonuses: ["Acesso à comunidade", "Templates prontos"],
+    heading: "Acesso completo.",
+    ctaLabel: "Quero aprender agora",
+    payments: ["Pix", "Cartão", "Boleto"],
+    guarantee: "7 dias de garantia",
+    priceLabel: "R$ 1.497",
+    installments: "ou 12x de R$ 142,08",
+  },
+  faq: {
+    items: [
+      { a: "Não. O treinamento começa pelo método.", q: "Preciso ter experiência prévia?" },
+      { a: "Sim, agnóstico de stack.", q: "É agnóstico de linguagem?" },
+    ],
+  },
+  footer: {
+    legal: "© 2024 Cliente Exemplo · Todos os direitos reservados.",
+    links: [
+      { href: "#", label: "Termos de Uso" },
+      { href: "#", label: "Suporte" },
+    ],
+  },
+  authority: {
+    bio: "Engenheiro de software com mais de uma década.",
+    name: "Cliente Exemplo",
+    eyebrow: "Seu instrutor",
+    credentials: ["10+ anos em produção", "+2.000 devs treinados"],
+  },
+};
+
+describe("validateSection — real generated data round-trips", () => {
+  for (const [type, fields] of Object.entries(REAL)) {
+    it(`accepts the live curso-exemplo-e2e '${type}' fields`, () => {
+      expect(validateSection(type, fields)).toEqual({ ok: true });
+    });
+  }
+
+  it("has a schema for every one of the 17 section types", () => {
+    expect(Object.keys(SECTION_SCHEMAS)).toHaveLength(17);
+  });
+});
+
+describe("validateSection — whitelist", () => {
+  it("rejects an unknown key (strict whitelist)", () => {
+    const r = validateSection("hero", { headline: "ok", evil: "<script>" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects a wrong-typed known field", () => {
+    expect(validateSection("hero", { headline: { nested: "x" } }).ok).toBe(false);
+    expect(validateSection("finalCta", { ctaLabel: 123 }).ok).toBe(false);
+  });
+
+  it("rejects an unknown section type", () => {
+    expect(validateSection("nope", { headline: "x" }).ok).toBe(false);
+  });
+
+  it("accepts an empty/partial object (fields are optional, not required)", () => {
+    expect(validateSection("hero", {}).ok).toBe(true);
+    expect(validateSection("offer", { ctaLabel: "Comprar" }).ok).toBe(true);
+  });
+});
+
+describe("validateSection — href sanitization", () => {
+  it("rejects a javascript: footer link but accepts http(s)/#/relative", () => {
+    expect(validateSection("footer", { links: [{ label: "x", href: "javascript:alert(1)" }] }).ok).toBe(false);
+    expect(validateSection("footer", { links: [{ label: "x", href: "https://example.com" }] }).ok).toBe(true);
+    expect(validateSection("footer", { links: [{ label: "x", href: "#" }] }).ok).toBe(true);
+    expect(validateSection("footer", { links: [{ label: "x", href: "/termos" }] }).ok).toBe(true);
+  });
+});
+
+describe("validateSection — per-section image field (ADR 0018)", () => {
+  const withImage = "https://x.supabase.co/storage/v1/object/public/landing-assets/lp/hero.png";
+
+  it("accepts an image URL on the image-capable sections", () => {
+    for (const type of ["hero", "problem", "solution", "features", "proof", "authority"]) {
+      expect(validateSection(type, { image: withImage }).ok).toBe(true);
+    }
+  });
+
+  it("rejects image on a section that does not support it (strict whitelist)", () => {
+    expect(validateSection("offer", { image: withImage }).ok).toBe(false);
+    expect(validateSection("faq", { image: withImage }).ok).toBe(false);
+  });
+
+  it("accepts a portrait URL on the hero (split layout), but rejects it elsewhere", () => {
+    const portrait = "https://x.supabase.co/storage/v1/object/public/landing-assets/lp/hero-portrait.png";
+    expect(validateSection("hero", { portrait }).ok).toBe(true);
+    expect(validateSection("hero", { image: withImage, portrait }).ok).toBe(true);
+    expect(validateSection("authority", { portrait }).ok).toBe(false);
+  });
+});
+
+describe("validateSection — CompareCell union", () => {
+  it("accepts boolean and string cells, rejects an object cell", () => {
+    expect(validateSection("comparison", { rows: [{ label: "a", ours: true, theirs: "x" }] }).ok).toBe(true);
+    expect(validateSection("comparison", { rows: [{ label: "a", ours: { bad: 1 } }] }).ok).toBe(false);
+  });
+});

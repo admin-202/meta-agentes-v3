@@ -1,0 +1,325 @@
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+import { setCookie, deleteCookie } from "hono/cookie";
+import { z } from "zod";
+import { env } from "@/lib/env";
+import { verifyPassword } from "@/lib/auth/password";
+import { verifyTurnstile } from "@/lib/auth/turnstile";
+import {
+  SESSION_COOKIE,
+  createSessionToken,
+  sessionCookieOptions,
+} from "@/lib/auth/session";
+import { rateLimiters, enforceLimit, clientIp } from "@/lib/ratelimit";
+import { transcribe } from "@/lib/nexus/stt";
+import { runChat, resumeChat } from "@/lib/nexus/chat";
+import { synthesizeStream } from "@/lib/nexus/tts";
+import { analyzeReviewFrame } from "@/lib/nexus/review-frame";
+import { getEvents, getProcesses } from "@/lib/services/events";
+import { getPendingNarrations, markNarrationSpoken } from "@/lib/services/narrations";
+import { getAutoReviewCandidate } from "@/lib/services/landing-page";
+import { landingPages } from "@/lib/api/landing-pages";
+import { clients } from "@/lib/api/clients";
+import { clientMaterials } from "@/lib/api/client-materials";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const MAX_AUDIO_BYTES = 2_500_000; // ~2.5MB; VAD keeps clips short
+const MAX_IMAGE_B64 = 4_000_000; // ~3MB decoded; client downscales to ~1280px JPEG
+
+const app = new Hono().basePath("/api");
+
+const loginSchema = z.object({
+  password: z.string().min(1).max(200),
+  // Cloudflare Turnstile token (cf-turnstile-response). Optional in the schema so the
+  // endpoint still works when Turnstile is not configured; enforced below when the
+  // secret key is present.
+  turnstileToken: z.string().min(1).max(4096).optional(),
+});
+
+const chatSchema = z.object({
+  sessionId: z.string().min(8).max(64),
+  text: z.string().min(1).max(2000),
+});
+
+const ttsSchema = z.object({
+  text: z.string().min(1).max(2000),
+});
+
+const captureSchema = z.object({
+  sessionId: z.string().min(8).max(64),
+  pendingId: z.string().uuid(),
+  image: z.object({
+    media_type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+    data: z.string().min(1),
+  }),
+});
+
+const reviewFrameSchema = z.object({
+  image: z.object({
+    media_type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+    data: z.string().min(1),
+  }),
+  label: z.string().min(1).max(120),
+  landingPageId: z.string().uuid().optional(),
+});
+
+app.post("/auth/login", async (c) => {
+  const ip = clientIp(c.req.raw);
+  const { allowed } = await enforceLimit(rateLimiters.login(), ip, "login");
+  if (!allowed) {
+    return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const parsed = loginSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "invalid_request" }, 400);
+  }
+
+  // Bot / brute-force gate: when Turnstile is configured, reject before we ever
+  // touch the password so automated attempts never reach the credential check.
+  const turnstileSecret = env.turnstileSecretKey();
+  if (turnstileSecret) {
+    const token = parsed.data.turnstileToken;
+    if (!token) {
+      return c.json({ error: "captcha_required" }, 400);
+    }
+    const human = await verifyTurnstile(token, turnstileSecret, ip);
+    if (!human) {
+      return c.json({ error: "captcha_failed" }, 403);
+    }
+  }
+
+  const ok = await verifyPassword(parsed.data.password, env.dashboardPasswordHash());
+  if (!ok) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  const token = await createSessionToken(env.authSecret());
+  setCookie(c, SESSION_COOKIE, token, { ...sessionCookieOptions });
+  return c.json({ ok: true });
+});
+
+app.post("/auth/logout", (c) => {
+  deleteCookie(c, SESSION_COOKIE, { path: "/" });
+  return c.json({ ok: true });
+});
+
+// ---------- Nexus voice pipeline ----------
+
+app.post("/nexus/stt", async (c) => {
+  const { allowed } = await enforceLimit(rateLimiters.nexusStt(), clientIp(c.req.raw), "nexus-stt");
+  if (!allowed) return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+
+  const form = await c.req.formData().catch(() => null);
+  const audio = form?.get("audio");
+  if (!(audio instanceof Blob)) return c.json({ error: "invalid_request" }, 400);
+  if (audio.size === 0) return c.json({ text: "" });
+  if (audio.size > MAX_AUDIO_BYTES) return c.json({ error: "audio_too_large" }, 413);
+
+  try {
+    const text = await transcribe(audio);
+    return c.json({ text });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "stt_failed", message: errMsg(err) }));
+    return c.json({ error: "stt_failed" }, 502);
+  }
+});
+
+app.post("/nexus/chat", async (c) => {
+  const { allowed } = await enforceLimit(rateLimiters.nexusChat(), clientIp(c.req.raw), "nexus-chat");
+  if (!allowed) return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+
+  const parsed = chatSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
+
+  try {
+    const result = await runChat(parsed.data.sessionId, parsed.data.text);
+    if (result.kind === "need_capture") {
+      return c.json({
+        status: "need_capture",
+        pendingId: result.pendingId,
+        usedTools: result.usedTools,
+        agentTriggers: result.agentTriggers,
+        landingEdits: result.landingEdits,
+        liveReviews: result.liveReviews,
+      });
+    }
+    return c.json({
+      reply: result.reply,
+      usedTools: result.usedTools,
+      agentTriggers: result.agentTriggers,
+      landingEdits: result.landingEdits,
+      liveReviews: result.liveReviews,
+    });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "chat_failed", message: errMsg(err) }));
+    return c.json({ error: "chat_failed" }, 502);
+  }
+});
+
+// Resumes a chat turn that paused on capture_screen with the browser's screenshot.
+app.post("/nexus/capture", async (c) => {
+  const { allowed } = await enforceLimit(rateLimiters.nexusCapture(), clientIp(c.req.raw), "nexus-capture");
+  if (!allowed) return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+
+  const parsed = captureSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
+
+  const { data } = parsed.data.image;
+  if (data.length > MAX_IMAGE_B64) return c.json({ error: "image_too_large" }, 413);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return c.json({ error: "invalid_request" }, 400);
+
+  try {
+    const result = await resumeChat(parsed.data.sessionId, parsed.data.pendingId, parsed.data.image);
+    if (result.kind === "need_capture") {
+      return c.json({
+        status: "need_capture",
+        pendingId: result.pendingId,
+        usedTools: result.usedTools,
+        agentTriggers: result.agentTriggers,
+        landingEdits: result.landingEdits,
+        liveReviews: result.liveReviews,
+      });
+    }
+    return c.json({
+      reply: result.reply,
+      usedTools: result.usedTools,
+      agentTriggers: result.agentTriggers,
+      landingEdits: result.landingEdits,
+      liveReviews: result.liveReviews,
+    });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "capture_failed", message: errMsg(err) }));
+    return c.json({ error: "chat_failed" }, 502);
+  }
+});
+
+// One frame of the Live Review (SPEC-014): describe + opine on one section in 1–2 spoken
+// sentences. Stateless vision (no chat memory/tools); the browser drives the scroll loop.
+app.post("/nexus/review-frame", async (c) => {
+  const { allowed } = await enforceLimit(rateLimiters.nexusReview(), clientIp(c.req.raw), "nexus-review");
+  if (!allowed) return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+
+  const parsed = reviewFrameSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
+
+  const { data } = parsed.data.image;
+  if (data.length > MAX_IMAGE_B64) return c.json({ error: "image_too_large" }, 413);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return c.json({ error: "invalid_request" }, 400);
+
+  try {
+    const analysis = await analyzeReviewFrame({ image: parsed.data.image, label: parsed.data.label });
+    return c.json({ analysis });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "review_frame_failed", message: errMsg(err) }));
+    return c.json({ error: "review_failed" }, 502);
+  }
+});
+
+app.post("/nexus/tts", async (c) => {
+  const { allowed } = await enforceLimit(rateLimiters.nexusTts(), clientIp(c.req.raw), "nexus-tts");
+  if (!allowed) return c.json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+
+  const parsed = ttsSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
+
+  try {
+    const upstream = await synthesizeStream(parsed.data.text);
+    if (!upstream.ok || !upstream.body) {
+      console.error(JSON.stringify({ level: "error", event: "tts_failed", status: upstream.status }));
+      return c.json({ error: "tts_failed" }, 502);
+    }
+    return new Response(upstream.body, {
+      status: 200,
+      headers: { "content-type": "audio/mpeg", "cache-control": "no-store" },
+    });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "tts_failed", message: errMsg(err) }));
+    return c.json({ error: "tts_failed" }, 502);
+  }
+});
+
+// ---------- Live view (agent activity polling) ----------
+
+app.get("/dashboard/events", async (c) => {
+  const sinceRaw = c.req.query("since");
+  const since = sinceRaw && !Number.isNaN(Date.parse(sinceRaw)) ? sinceRaw : undefined;
+  try {
+    const [events, processes] = await Promise.all([getEvents(since), getProcesses()]);
+    return c.json({ events, processes, now: new Date().toISOString() });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "events_failed", message: errMsg(err) }));
+    return c.json({ error: "events_failed" }, 502);
+  }
+});
+
+// ---------- Autonomous mode (server→browser narration channel, ADR 0019) ----------
+// The operator's tab polls for narrations its watch produced and speaks them via TTS. Same
+// polling + service-key pattern as /dashboard/events — RLS stays deny-by-default (no Realtime).
+
+const sessionQuerySchema = z.string().min(8).max(64);
+
+app.get("/nexus/narrations", async (c) => {
+  const session = c.req.query("session");
+  const parsed = sessionQuerySchema.safeParse(session);
+  if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
+  try {
+    const narrations = await getPendingNarrations(parsed.data);
+    return c.json({ narrations, now: new Date().toISOString() });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "narrations_failed", message: errMsg(err) }));
+    return c.json({ error: "narrations_failed" }, 502);
+  }
+});
+
+app.patch("/nexus/narrations/:id", async (c) => {
+  const id = c.req.param("id");
+  if (!z.string().uuid().safeParse(id).success) return c.json({ error: "invalid_request" }, 400);
+  try {
+    await markNarrationSpoken(id);
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "narration_ack_failed", message: errMsg(err) }));
+    return c.json({ error: "narration_ack_failed" }, 502);
+  }
+});
+
+// Auto-review on completion (SPEC-014 v1): the dashboard polls this; when a freshly-created
+// landing page is ready, the browser opens the Live Review overlay. Read-only, session-gated by
+// the middleware. Dedup (fire once per id) is the client's job.
+app.get("/nexus/live-review/candidate", async (c) => {
+  try {
+    const candidate = await getAutoReviewCandidate();
+    return c.json({ candidate, now: new Date().toISOString() });
+  } catch (err) {
+    console.error(JSON.stringify({ level: "error", event: "live_review_candidate_failed", message: errMsg(err) }));
+    return c.json({ error: "candidate_failed" }, 502);
+  }
+});
+
+// ---------- Landing-page editor (draft CRUD + publish) ----------
+app.route("/landing-pages", landingPages);
+
+// ---------- Client onboarding ----------
+app.route("/clients", clients);
+
+// ---------- Client brand materials (logo, spokesperson photo, mascot, past ads) ----------
+app.route("/client-materials", clientMaterials);
+
+app.get("/health", (c) => c.json({ ok: true }));
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : "unknown";
+}
+
+export const GET = handle(app);
+export const POST = handle(app);
+// The landing-page editor uses PATCH (sections/theme/settings) and PUT/DELETE (tracking
+// secrets). Next route handlers must export each HTTP method explicitly, or Next returns 405
+// before Hono ever dispatches — so every verb the Hono app handles needs an export here.
+export const PATCH = handle(app);
+export const PUT = handle(app);
+export const DELETE = handle(app);
