@@ -45,6 +45,7 @@ COPY --chown=runner:runner docs /app/docs
 COPY --chown=runner:runner CLAUDE.md /app/CLAUDE.md
 COPY --chown=runner:runner scripts /app/scripts
 COPY --chown=runner:runner crontab /app/crontab
+COPY --chown=runner:runner .mcp.json /app/.mcp.json
 
 RUN chmod +x /app/scripts/*.sh
 

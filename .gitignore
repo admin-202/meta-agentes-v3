@@ -17,6 +17,8 @@ notes/
 .notes/
 *.worklog.md
 .session/
+files-imersao.zip
+/Apostilas e conteúdos/
 
 # Claude Code — personal/local settings (auto-gitignored by the CLI; declared for clarity)
 .claude/settings.local.json
@@ -92,3 +94,4 @@ logs/
 
 # Sprite review artifacts (the PNGs are intentional, GIFs are review-only)
 public/sprites/**/*.gif
+.vercel
