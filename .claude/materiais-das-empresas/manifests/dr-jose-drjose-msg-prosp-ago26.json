@@ -1,0 +1,62 @@
+{
+  "client": {
+    "id": "cc7abee5-a230-4c39-8ce3-2b4c186abe80",
+    "slug": "aroso-e-potin-escritorio",
+    "name": "Dr jose",
+    "ad_account_id": "1291059802753367",
+    "ad_account_name": "[GB] CA - Aroso & Pontin 2",
+    "facebook_page_id": "708178332389527",
+    "facebook_page_name": "Escritorio Aroso & Pontin"
+  },
+  "source_plan": "Plano_Meta_Ads_Dr_Jose.docx (Documents/Dr jose/Arôso & Pontin advogados)",
+  "created_at": "2026-08-08",
+  "status": "draft_pending_creative",
+  "campaigns": [
+    {
+      "meta_campaign_id": "120251318442640286",
+      "name": "DRJOSE | MSG | PROSP | PF | AGO26",
+      "objective": "OUTCOME_LEADS",
+      "budget_mode": "ABO",
+      "status": "PAUSED",
+      "ad_sets": [
+        {"meta_ad_set_id": "120251336066130286", "name": "CJ01 | CONSIGNADO | BROAD | BR", "tema": "Empréstimo consignado", "video_esperado": "video 1 principal(1).mp4", "daily_budget_cents": 2000},
+        {"meta_ad_set_id": "120251336066950286", "name": "CJ02 | DEBITO-CONTA | BROAD | BR", "tema": "Débitos automáticos em conta corrente", "video_esperado": "Vídeo 2 principal(1).mp4", "daily_budget_cents": 2000},
+        {"meta_ad_set_id": "120251336067550286", "name": "CJ04 | VEICULO | BROAD | BR", "tema": "Busca e apreensão de veículos", "video_esperado": "Video 4 principal(1).mp4", "daily_budget_cents": 2000},
+        {"meta_ad_set_id": "120251336067930286", "name": "CJ05 | JUROS | BROAD | BR", "tema": "Juros e renegociações sucessivas", "video_esperado": "Video 5 principal(1).mp4", "daily_budget_cents": 2000}
+      ]
+    },
+    {
+      "meta_campaign_id": "120251318444880286",
+      "name": "DRJOSE | MSG | PROSP | PJ | AGO26",
+      "objective": "OUTCOME_LEADS",
+      "budget_mode": "ABO",
+      "status": "PAUSED",
+      "ad_sets": [
+        {"meta_ad_set_id": "120251336068670286", "name": "CJ03 | PJ-ENDIV | BROAD | BR", "tema": "Endividamento de micro e pequenas empresas", "video_esperado": "Video 3 principal(1).mp4", "daily_budget_cents": 2000}
+      ]
+    }
+  ],
+  "ad_set_common_config": {
+    "billing_event": "IMPRESSIONS",
+    "optimization_goal": "CONVERSATIONS",
+    "destination_type": "WHATSAPP",
+    "promoted_object": {"page_id": "708178332389527"},
+    "targeting": {"geo_locations": {"countries": ["BR"]}, "age_min": 18, "age_max": 65, "advantage_audience": true},
+    "excluded_custom_audiences": ["120251336561050286"]
+  },
+  "custom_audiences": [
+    {"audience_id": "120251336559860286", "name": "PA | IG+FB ENGAJOU | 365D", "subtype": "ENGAGEMENT", "source": "page", "retention_days": 365, "used_in": "reservado para campanha de remarketing futura (Campanha 3, não criada ainda)"},
+    {"audience_id": "120251336561050286", "name": "PA | MSG INICIOU | 180D", "subtype": "ENGAGEMENT", "source": "page", "retention_days": 180, "used_in": "excluído dos 5 conjuntos de prospecção acima"}
+  ],
+  "pending": {
+    "video_50pct_audience": "não criado — depende de um vídeo já rodando como anúncio (precisa de video_id ativo)",
+    "site_visitou_audience": "não criado — sem pixel/dataset configurado nesta ad account",
+    "lead_qualificado_audience": "não criado — depende de dados de CRM (lista de leads qualificados) que ainda não existem",
+    "remarketing_campaign": "não criada — plano recomenda só ativar quando houver volume de prospecção",
+    "creatives_and_ads": "usuário vai subir os 5 vídeos direto na biblioteca do Meta Ads Manager e criar os anúncios manualmente (creative + copy) em cada um dos 5 ad sets acima"
+  },
+  "blockers_resolved": [
+    "Página sem WhatsApp Business conectado — usuário conectou manualmente antes de retomar",
+    "Upload de vídeo via bucket público Supabase (ad-ingest) bloqueado por limite global do projeto (413 Payload Too Large) — contornado subindo vídeo direto no Meta Ads Manager"
+  ]
+}
