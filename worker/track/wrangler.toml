@@ -1,0 +1,27 @@
+name = "lp-tracking"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# Tagging server multi-tenant em track.example.com. `custom_domain = true` faz o wrangler
+# provisionar o hostname + DNS automaticamente (proxied/SSL) no deploy — sem passo manual de
+# DNS. Same-site de todas as LPs (*.example.com). Exige escopo Workers Routes + DNS no token.
+[[routes]]
+pattern = "track.example.com"
+custom_domain = true
+
+# D1 (banco de eventos na borda)
+[[d1_databases]]
+binding = "DB"
+database_name = "lp-tracking"
+database_id = "1f581e43-ca5d-4c57-8cee-6a6c5324d87e"
+
+# Variáveis NÃO-secretas
+[vars]
+ALLOWED_ORIGIN_SUFFIX = ".example.com"
+META_API_VERSION = "v21.0"
+
+# Segredos -> via `wrangler secret put NOME` (NUNCA aqui):
+#   SUPABASE_URL            (URL do projeto Supabase)
+#   SUPABASE_SERVICE_KEY    (service_role key — lê lp_tracking_secrets, escreve lp_events)
+#   META_TEST_EVENT_CODE    (opcional, só homologação global)
+#   DASHBOARD_TOKEN         (opcional, protege /dash/data de borda)
