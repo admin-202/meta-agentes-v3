@@ -1,0 +1,72 @@
+{
+  "client": {
+    "id": "d060c2a6-8c48-4e1d-b070-bf5f2c8e8f82",
+    "slug": "clinica-elegance",
+    "name": "Dra Isitys",
+    "business_name": "Clínica Elegance — Dra. Isitys Lorhanne Gomes Calçado",
+    "ad_account_id": "3127855317421725",
+    "ad_account_name": "Clinica Elegance",
+    "business_manager_id": "26193780510235719",
+    "business_manager_name": "Dra Isitys",
+    "facebook_page_id": "308601112346926",
+    "facebook_page_name": "Intensy",
+    "site": "https://eleganceclinica.com/",
+    "instagram": "@clinicaelegance",
+    "whatsapp": "(38) 99744-7551"
+  },
+  "source_plan": "Google Drive — pasta \"Dra Isitys- Claude\" (plano_estrutura_clinica_elegance.md, criativos_modelados_clinica_elegance.md, roteiros_video_clinica_elegance.md, cliente_clinica_elegance.md) + pasta \"Dra Isitys\" (43 imagens de criativo + \"Copies dos Anúncios - Dra. Isitys\")",
+  "created_at": "2026-08-09",
+  "status": "draft_pending_creative",
+  "page_discrepancy_note": "O plano do Drive cita a página 'Isitys Lorhanne' (100639395081815) como a correta e avisa para NÃO usar 'Elegance Saúde e Estética' (outra empresa). Nenhuma das duas pertence ao BM 'Dra Isitys' — o BM só tem 'Intensy' (308601112346926) e 'Clínica Intensy' (330439036827456). Operador escolheu 'Intensy' em 2026-08-09; Supabase clients.facebook_page_id foi atualizado de 330439036827456 para 308601112346926 para refletir essa escolha.",
+  "campaigns": [
+    {
+      "meta_campaign_id": "120250093358060305",
+      "name": "CE_Emagrec_Msg_Paracatu_2026-08",
+      "linha": "A — Emagrecimento / Protocolo Curvas (produto principal, meta declarada 40 protocolos/mês)",
+      "objective": "OUTCOME_LEADS",
+      "budget_mode": "ABO",
+      "status": "PAUSED",
+      "ad_sets": [
+        {"meta_ad_set_id": "120250093358800305", "name": "Frio_25-55_15km", "daily_budget_cents": 2000}
+      ]
+    },
+    {
+      "meta_campaign_id": "120250093358190305",
+      "name": "CE_Harmoniz_Msg_Paracatu_2026-08",
+      "linha": "B — Harmonização facial e corporal, por cidade (só Paracatu nesta primeira leva — única cidade com criativo pronto)",
+      "objective": "OUTCOME_LEADS",
+      "budget_mode": "ABO",
+      "status": "PAUSED",
+      "ad_sets": [
+        {"meta_ad_set_id": "120250093359090305", "name": "Frio_25-55_15km", "daily_budget_cents": 2000}
+      ]
+    },
+    {
+      "meta_campaign_id": "120250093358410305",
+      "name": "CE_Flacidez_Msg_Paracatu_2026-08",
+      "linha": "C — Flacidez, aparelho novo (meta declarada 20 protocolos/mês)",
+      "objective": "OUTCOME_LEADS",
+      "budget_mode": "ABO",
+      "status": "PAUSED",
+      "ad_sets": [
+        {"meta_ad_set_id": "120250093359570305", "name": "Frio_25-55_15km", "daily_budget_cents": 2000}
+      ]
+    }
+  ],
+  "ad_set_common_config": {
+    "billing_event": "IMPRESSIONS",
+    "optimization_goal": "CONVERSATIONS",
+    "destination_type": "WHATSAPP",
+    "promoted_object": {"page_id": "308601112346926"},
+    "targeting": {"geo_locations": {"custom_locations": [{"latitude": -17.2222, "longitude": -46.8746, "radius": 15, "distance_unit": "kilometer"}]}, "age_min": 25, "age_max": 55, "advantage_audience": true}
+  },
+  "total_daily_budget_cents": 6000,
+  "client_daily_budget_cap_cents": 12000,
+  "pending": {
+    "ads_and_creative": "Nenhum anúncio criado ainda. Existem 43 imagens prontas + copy em pt-BR (doc \"Copies dos Anúncios - Dra. Isitys\" no Drive), todas rotuladas para Paracatu, cobrindo as 3 linhas. Próximo passo: mapear cada imagem/copy pro ad set correspondente e criar os ads (upload de imagem via MCP).",
+    "pixel_capi": "Não configurado nessa ad account (0 datasets). Não bloqueia campanhas de mensagem/WhatsApp, mas bloqueia qualquer campanha de conversão em site e o rastreamento de funil completo (CRM) que o plano da cliente pede.",
+    "budget_real": "R$20/dia por ad set é placeholder (herdado do padrão usado no Dr Jose). O plano lista perguntas em aberto pra cliente real: ticket do protocolo de emagrecimento/flacidez/harmonização, taxa de fechamento, orçamento mensal real, prazo de início.",
+    "cidades_expansao": "Vazante, Brasília e Porto Seguro (Linha B) ficaram de fora desta leva — sem criativo pronto ainda.",
+    "old_campaigns": "4 campanhas antigas na conta permanecem PAUSED e não foram tocadas (nomes citam 'MONJOURO' — revisão de compliance necessária antes de reativar ou arquivar definitivamente)."
+  }
+}
