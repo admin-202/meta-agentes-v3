@@ -530,3 +530,33 @@ fly ssh console -a meta-agents-v3 -C "cat /app/tentativas-geracao-de-campanhas/$
 ```
 
 Procura `"verified": false` e o array `"errors"` (ou `"blockers"` em versões antigas). Cada entrada tem `code`/`subcode` (ex: `100/3858634` = campos DSA faltando, ver [§18](#18-erro-meta-1003858634-verified-advertiser-missing); ou `openai_billing_hard_limit_reached`, ver [§19](#19-erro-openai-billing_hard_limit_reached)). Ataca o bloqueio correspondente.
+
+---
+
+## 22. Erro Meta `WhatsApp number required: Reconnect your WhatsApp number`
+
+**Onde apareceu (2026-08-22)**: 3 ads da conta `CA 01 - Viena Cacau` (`3836344939971458`), todos com `destination_type=WHATSAPP`.
+
+**Causa**: o número de WhatsApp que estava vinculado à Facebook Page/Instagram da conta se desconectou. A Meta bloqueia a entrega do ad até a reconexão — isso não é um erro do payload da skill, é estado externo da Page.
+
+**Fix**: no operador (não dá via Marketing API) — Meta Business Suite → Page em questão → configurações do WhatsApp → reconectar o número. Depois de reconectado, os ads voltam a entregar sem precisar recriar nada.
+
+---
+
+## 23. Erro Meta `WhatsApp Account Is Banned`
+
+**Onde apareceu (2026-08-22)**: 1 ad da conta `[GB] CA - Aroso & Pontin 2` (`1291059802753367`, cliente Dr Jose).
+
+**Causa**: o número de WhatsApp usado nesse ad foi banido pelo WhatsApp (não é reversível via Ads Manager/Marketing API — é decisão do WhatsApp, geralmente por volume/spam reportado).
+
+**Fix**: não há workaround técnico. O operador precisa abrir chamado no suporte do WhatsApp Business (https://business.whatsapp.com/support) pedindo revisão do banimento, ou trocar pra outro número verificado e reapontar a Page/anúncio pro número novo.
+
+---
+
+## 24. Notificação por Telegram indisponível (skill referencia plugin inexistente)
+
+**Contexto (2026-08-23)**: `funnel-analytics-cliente-exemplo-campaign` (Passo 7) e `analytic-traffic-cliente-exemplo-campaign` chamam `mcp__plugin_telegram_telegram__reply` pra notificar o operador. Esse plugin **nunca foi instalado** — `claude plugin list` retorna vazio e o marketplace oficial (`claude-plugins-official`) não tem um plugin de Telegram (só bridges equivalentes de Discord e iMessage).
+
+**Impacto**: o Passo 7 dessas skills cai no fallback já previsto ("Telegram pulado (sem CHAT_ID)" / tool indisponível) — não trava o headless, mas nenhuma notificação sai de fato.
+
+**Decisão (2026-08-23)**: registrado como pendência conhecida, sem ação imediata. Quando for priorizado, as opções levantadas foram: (1) construir uma integração própria com a Telegram Bot API (webhook/polling + `sendMessage`, token via `@BotFather`), ou (2) migrar a notificação pro plugin oficial de Discord, que já existe pronto no marketplace com controle de acesso (pairing/allowlist).

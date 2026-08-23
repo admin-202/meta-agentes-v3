@@ -15,6 +15,7 @@ allowed-tools: Read, Bash
 - Payer/Advertiser (razão social pra `dsa_beneficiary`/`dsa_payor`): **TODO — não confirmado.** Placeholder anterior era `NOME-DO-PAGADOR`.
 - Orçamento máximo permitido para esse cliente: R$ 50,00 por dia por campanha. (Nota: uma versão anterior deste arquivo dizia R$ 70,00; usei R$ 50,00 porque é o valor que as skills `create-traffic-viena-cacau-campaign` e `edicao-de-campanha-viena-cacau` já tinham como limite duro embutido — confirme com o operador se 70 era intencional.)
 - Bloqueio ativo: Meta `100/3858634 verified advertiser missing` — criação de AdSet com targeting BR direto é rejeitada pela Marketing API. Workaround em uso: criar com `targeting.countries=["US"]` como placeholder e o operador troca manualmente pra BR no Ads Manager antes de ativar. Ver [runbook §18](../../../docs/how-to/operations-runbook.md#18-erro-meta-1003858634-verified-advertiser-missing) para o diagnóstico completo e como reverter quando a Meta aprovar o review.
+- **Bloqueio ativo (2026-08-22)**: os 3 ads dessa conta estão parados com erro "WhatsApp number required: Reconnect your WhatsApp number to your Facebook Page or Instagram account to run this ad." — o número de WhatsApp da Page desconectou. Fix é manual no Business Suite, não via API. Ver [runbook §22](../../../docs/how-to/operations-runbook.md#22-erro-meta-whatsapp-number-required-reconnect-your-whatsapp-number).
 - Materiais desse cliente estão em `.claude/materiais-das-empresas/Viena Cacau/`
 
 ### Dra Isitys (Clínica Elegance — Dra. Isitys Lorhanne Gomes Calçado)
@@ -40,10 +41,11 @@ allowed-tools: Read, Bash
 - Facebook Page: `708178332389527` ("Escritorio Aroso & Pontin")
 - URLs/orçamento máximo: **TODO — não confirmado.** Não há registro de teto de orçamento diário nem de site/domínio pra esse cliente; só o manifest de campanha (abaixo). Confirmar com o operador antes de tratar como cliente totalmente ativo.
 - **Sem pixel/dataset configurado** nessa ad account — bloqueia audiência de "site visitou" e campanhas de conversão em site (mensagem via WhatsApp não depende disso).
+- **Bloqueio ativo (2026-08-22)**: 1 dos ads dessa conta está pausado com erro "WhatsApp Account Is Banned" — o número de WhatsApp usado foi banido pelo WhatsApp (não reversível via Ads Manager/API). Precisa de chamado no suporte do WhatsApp Business ou trocar de número. Ver [runbook §23](../../../docs/how-to/operations-runbook.md#23-erro-meta-whatsapp-account-is-banned).
 - 2 campanhas já criadas na conta, ambas `PAUSED`: `DRJOSE | MSG | PROSP | PF | AGO26` (4 ad sets: consignado, débito em conta, veículo, juros — R$20/dia cada) e `DRJOSE | MSG | PROSP | PJ | AGO26` (1 ad set: endividamento PJ — R$20/dia). Total planejado: R$100/dia se todos ativados.
 - Criativos: usuário sobe os 5 vídeos e cria os anúncios manualmente direto no Ads Manager (não é fluxo automatizado pelas skills). Duas custom audiences de engajamento de página já existem (`PA | IG+FB ENGAJOU | 365D` reservada pra remarketing futuro; `PA | MSG INICIOU | 180D` já excluída dos 5 ad sets de prospecção).
 - Manifest completo em `.claude/materiais-das-empresas/manifests/dr-jose-drjose-msg-prosp-ago26.json`.
-- **Sem pasta de materiais dedicada** em `.claude/materiais-das-empresas/` (nem logo, nem exemplos de ads) — os vídeos e a copy vivem fora deste repo.
+- Materiais desse cliente estão em `.claude/materiais-das-empresas/Dr Jose/` (pastas criadas em 2026-08-23, todas vazias — os 5 vídeos e a copy vivem fora deste repo, sobem direto no Ads Manager).
 
 ### ultronchat
 
